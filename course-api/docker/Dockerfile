@@ -1,0 +1,29 @@
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+COPY pyproject.toml ./
+COPY src/ ./src/
+
+RUN python -n venv /opt/venv && /opt/venv/bin/pip install .
+
+FROM python:3.11-slim AS runtime
+
+# Correct ENV syntax (no space around =)
+ENV PATH="/opt/venv/bin:$PATH" PYTHONUNBUFFERED=1
+
+RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --create-home app
+
+WORKDIR /app
+
+COPY --from=builder /opt/venv /opt/venv
+COPY data/  /app/data
+
+#mape /app writeable by the app user - since at runtime, the application will create 'courses.db' in the folder when init_db runs 
+RUN chown -R app:app /app
+
+USER app
+
+EXPOSE 5000
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--access-logfile", "-", "--error-logfile", "-", "course-api:create_app()"]

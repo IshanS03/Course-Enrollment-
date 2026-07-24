@@ -1,6 +1,11 @@
 pyproject.toml
 src/course_api/__init__.py
 src/course_api/db.py
+src/course_api.egg-info/PKG-INFO
+src/course_api.egg-info/SOURCES.txt
+src/course_api.egg-info/dependency_links.txt
+src/course_api.egg-info/requires.txt
+src/course_api.egg-info/top_level.txt
 src/course_api/api/errors.py
 src/course_api/api/filters.py
 src/course_api/api/logging.py
@@ -14,8 +19,3 @@ src/course_api/models/enrollment.py
 src/course_api/repository/__init__.py
 src/course_api/repository/courses.py
 src/course_api/repository/enrollments.py
-src/support_api.egg-info/PKG-INFO
-src/support_api.egg-info/SOURCES.txt
-src/support_api.egg-info/dependency_links.txt
-src/support_api.egg-info/requires.txt
-src/support_api.egg-info/top_level.txt

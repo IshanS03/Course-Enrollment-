@@ -1,5 +1,5 @@
 [project]
-name = "support-api"
+name = "course-api"
 version = "0.1.0"
 description = "Customer Support Intelligence Platform — backend service."
 requires-python = ">=3.11"
