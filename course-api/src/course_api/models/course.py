@@ -22,3 +22,17 @@ class Course(BaseModel):
     end_time: int | None = Field(default=None, ge=9, le=21)
     created_at: datetime
     updated_at: datetime
+
+class CourseCreate(BaseModel):
+    """Schema for POST /courses. Server assigns id, time_stamps, *maybe course_code?"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    course_code: str = Field(pattern=COURSE_CODE_PATTERN)
+    title: str = Field(min_length=5, max_length=200)
+    instructor: str | None = Field(default=None, min_length=1, max_length=100)
+    capacity: int = Field(ge=0, le=1000)
+    semester: Semester
+    days: Days
+    start_time: int | None = Field(default=None, ge=8, le=18)
+    end_time: int | None = Field(default=None, ge=9, le=21)

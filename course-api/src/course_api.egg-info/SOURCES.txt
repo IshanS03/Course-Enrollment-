@@ -8,11 +8,13 @@ src/course_api.egg-info/requires.txt
 src/course_api.egg-info/top_level.txt
 src/course_api/api/errors.py
 src/course_api/api/filters.py
+src/course_api/api/http_resillience.py
 src/course_api/api/logging.py
 src/course_api/api/middleware.py
 src/course_api/api/blueprints/__init__.py
 src/course_api/api/blueprints/course.py
 src/course_api/api/blueprints/enrollment.py
+src/course_api/api/blueprints/health.py
 src/course_api/models/__init__.py
 src/course_api/models/course.py
 src/course_api/models/enrollment.py

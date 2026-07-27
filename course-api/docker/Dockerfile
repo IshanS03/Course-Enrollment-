@@ -5,14 +5,14 @@ WORKDIR /build
 COPY pyproject.toml ./
 COPY src/ ./src/
 
-RUN python -n venv /opt/venv && /opt/venv/bin/pip install .
+RUN python -m venv /opt/venv && /opt/venv/bin/pip install .
 
 FROM python:3.11-slim AS runtime
 
 # Correct ENV syntax (no space around =)
 ENV PATH="/opt/venv/bin:$PATH" PYTHONUNBUFFERED=1
 
-RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --create-home app
+RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --gid 10001 --create-home app
 
 WORKDIR /app
 
@@ -26,4 +26,4 @@ USER app
 
 EXPOSE 5000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--access-logfile", "-", "--error-logfile", "-", "course-api:create_app()"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--access-logfile", "-", "--error-logfile", "-", "course_api:create_app()"]

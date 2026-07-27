@@ -1,19 +1,20 @@
+import json
 import sqlite3
 from pathlib import Path
 from flask import g, current_app
 import os
 
-SCHEMA_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "schema.sql"
 
-_DEFAULT_DB_PATH = Path(__file__).resolve().parent / "courses.db"
+_DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent.parent / "courses.db"
 
-#_DATA_DIR = 
-#def _resolve_db_path(db_path: Path | str | None) -> Path | str:
- #    """Priortiy: Explicit arg > DB_PATH env > Module default"""
- #    return db_path or os.environ.get("DB_PATH") or DEFAULT_DB_PATH
+_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+def _resolve_db_path(db_path: Path | str | None) -> Path | str:
+   """Priortiy: Explicit arg > DB_PATH env > Module default"""
+   return db_path or os.environ.get("DB_PATH") or _DEFAULT_DB_PATH
 
-#def _resolve_data_dir() -> Path:
- #    return Path(os.environ.get("DATA_DIR") or _DATA_DIR)
+def _resolve_data_dir() -> Path:
+    return Path(os.environ.get("DATA_DIR") or _DATA_DIR)
+
 
 
 #connection 
@@ -36,12 +37,43 @@ def close_connection(exception = None):
     if db is not None:
         db.close()
 
-#initialize db 
-def init_db(db_path: Path | str = _DEFAULT_DB_PATH) -> None:
+#initialize db
+def init_db(db_path: Path | str | None = None) -> None:
+
+
+    db_path = _resolve_db_path(db_path)
+    schema_path = _resolve_data_dir() / "schema.sql" #schema.sql resides in /app/data/ in docker
     conn = connect(db_path)
     try:
-        conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+        conn.executescript(schema_path.read_text(encoding="utf-8"))
+    finally:
+        conn.close()
+
+
+def seed_from_json(db_path: Path | str | None = None) -> int:
+
+
+    """Seed the courses table from data/courses.json.
+    """
+
+    db_path = _resolve_db_path(db_path)
+        
+    data_dir = _resolve_data_dir()
+    courses = json.loads((data_dir / "courses.json").read_text(encoding="utf-8"))
+    conn = connect(db_path)
+    try:
+        # courses
+        conn.executemany(
+            """
+                INSERT OR REPLACE INTO courses
+                    (course_code, title, instructor, semester,
+                     days, start_time, end_time, capacity)
+                    VALUES (:course_code, :title, :instructor, :semester,
+                            :days, :start_time, :end_time, :capacity)
+            """, courses
+        )
+       
         conn.commit()
     finally:
         conn.close()
-    
+    return len(courses)

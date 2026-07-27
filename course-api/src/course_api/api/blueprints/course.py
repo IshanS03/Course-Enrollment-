@@ -1,7 +1,10 @@
 
+from datetime import datetime, timezone
+
 from flask import Blueprint, g, current_app, request
 from course_api.db import connect
 from course_api.repository.courses import list_courses_sql, get_course_sql
+from course_api.models.course import CourseCreate
 
 bp = Blueprint("course", __name__)
 
@@ -45,6 +48,16 @@ def create_course():
     """POST /courses
         creates a course with specified parameters and returns it.
     """
+    data = CourseCreate.model_validate(request.get_json(silent=True) or {})
+    conn = _db()
+    conn = conn.execute()
+    count = conn.execute("SELECT COUNT(*) AS n FROM courses").fetchone()["n"] # how many courses are in the database
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+    new_course = {
+        **data.model_dump(),
+        "id": f"" #CHANGE THIS 
+    }
     return
 
 @bp.route("<course_id>", methods = ["PATCH"])

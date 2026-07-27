@@ -10,7 +10,7 @@ services:
     environment:
       LOG_LEVEL: info
       LOG_JSON: "1"
-      DB_PATH: /app/sources.db
+      DB_PATH: /app/courses.db
       DATA_DIR: /app/data
 
     healthcheck:
@@ -20,12 +20,9 @@ services:
       retries: 6
       start_period: 10s
 
-##Need to update this command
-    command: >
-      sh -c "
-
-        python -c 'from support_api.storage import init_db, seed_from_json;
-        init_db(); seed_from_json(' && gunicorn --bind 0.0.0.0:5000 -workers
-        2 --access-logfile - --eror-logfile -support_api.api:create_app()')
-
-        "
+    command:
+      - sh
+      - -c
+      - |
+        python -c "from course_api.db import init_db, seed_from_json; init_db(); seed_from_json()" && \
+        gunicorn --bind 0.0.0.0:5000 --workers 2 --access-logfile - --error-logfile - "course_api:create_app()"

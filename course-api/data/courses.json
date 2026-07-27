@@ -1,0 +1,32 @@
+[
+    {
+        "course_code": "CS-301",
+        "title": "Algorithms",
+        "instructor": "Peter Djikstra",
+        "semester": "Fall 2026",
+        "days": "MWF",
+        "start_time": 600,
+        "end_time": 650,
+        "capacity": 2
+    },
+    {
+        "course_code": "MATH-101",
+        "title": "Calculus I",
+        "instructor": "John Math",
+        "semester": "Fall 2026",
+        "days": "TTH",
+        "start_time": 780,
+        "end_time": 855,
+        "capacity": 30
+    },
+    {
+        "course_code": "ENG-210",
+        "title": "Technical Writing",
+        "instructor": null,
+        "semester": "Fall 2026",
+        "days": "MWF",
+        "start_time": 540,
+        "end_time": 590,
+        "capacity": 25
+    }
+]

@@ -11,8 +11,10 @@ def _row_to_course(row: sqlite3.Row) -> dict[str, Any]:
         "instructor": row["instructor"],
         "semester": row["semester"],
         "days": row["days"],
-        "schedule": row["schedule"],
+        "semester": row["semester"],
         "capacity": row["capacity"],
+        "start_time": row["start_time"],
+        "end_time": row["end_time"],
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
     }

@@ -2,6 +2,8 @@ pydantic>=2.10
 httpx>=0.28
 python-dotenv>=1.0
 flask>=3.0
+flask_limiter>=3.8
+gunicorn>=22.0
 
 [dev]
 pytest>=8.3

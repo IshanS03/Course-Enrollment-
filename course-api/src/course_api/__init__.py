@@ -3,8 +3,12 @@ from pathlib import Path
 
 from flask import Flask
 from course_api.api.blueprints.course import bp as course_bp
+from course_api.api.blueprints.health import bp as h
 from course_api.db import init_db, close_connection
 from course_api.api.middleware import register_request_logging
+
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 
 _DEFAULT_DB_PATH = (
@@ -27,6 +31,14 @@ def create_app(db_path : str | None  = None) -> Flask:
 
     # mount the blueprints to the flask app
     app.register_blueprint(course_bp, url_prefix= "/courses") #localhost:5000/courses
+    app.register_blueprint(h) 
+
+    Limiter(
+        key_func = get_remote_address,
+        app=app,
+        default_limits=["200 per minute"],
+        storage_uri="memory://"
+    )
 
     register_request_logging(app)
     app.teardown_appcontext(close_connection)
