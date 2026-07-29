@@ -3,8 +3,9 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, g, current_app, request
 from course_api.db import connect
-from course_api.repository.courses import list_courses_sql, get_course_sql
-from course_api.models.course import CourseCreate
+from course_api.repository.courses import list_courses_sql, get_course_sql, create_course_sql, update_course_sql, delete_course_sql
+from course_api.models.course import CourseCreate, CourseUpdate
+import uuid
 
 bp = Blueprint("course", __name__)
 
@@ -24,7 +25,6 @@ def get_courses():
         instructor = request.args.get("instructor"),
         semester = request.args.get("semseter"),
         limit = int(request.args.get("limit", 100)),
-
         )
     
     return { "count": len(courses), "items": courses }
@@ -50,29 +50,57 @@ def create_course():
     """
     data = CourseCreate.model_validate(request.get_json(silent=True) or {})
     conn = _db()
-    conn = conn.execute()
-    count = conn.execute("SELECT COUNT(*) AS n FROM courses").fetchone()["n"] # how many courses are in the database
     now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-
+    id = str(uuid.uuid4())
     new_course = {
         **data.model_dump(),
-        "id": f"" #CHANGE THIS 
+        "id": id, # will possibly change this
+        "created_at": now,
+        "updated_at": now,
     }
-    return
+    create_course_sql(conn, new_course)
+    conn.commit()
+    return new_course, 201
 
 @bp.route("<course_id>", methods = ["PATCH"])
-def edit_course():
+def edit_course(course_id):
     """PATCH /courses/{id}
         updates a course based on the ID provided.
     """
-    return
+    conn = _db()
+    course = get_course_sql(conn,  course_id) 
+
+    if course is None:
+        #create custom CourseNotFound exception here
+        return
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    data = CourseUpdate.model_validate(request.get_json(silent = True) or {})
+    #data is a pydantic object, must dump it into dict
+    #exclude_unset set so that only fields the client sent will change 
+    for field, value in data.model_dump(exclude_unset=True).items():
+        course[field] = value
+
+    course["updated_at"] = now
+    update_course_sql(conn, course)
+
+    conn.commit()
+    return course, 200
 
 @bp.route("<course_id>", methods = ["DELETE"])
-def delete_course():
+def delete_course(course_id):
     """DELETE /courses/{id}
         deletes an individual course based on the ID provided.
     """
-    return
+    conn = _db()
+    course = get_course_sql(conn,  course_id) 
+
+    if course is None:
+        #create custom CourseNotFound exception here
+        return
+
+    delete_course_sql(conn, course_id)
+    conn.commit()
+    return 204
 
 
 

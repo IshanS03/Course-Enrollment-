@@ -47,3 +47,48 @@ def get_course_sql(conn: sqlite3.Connection, course_id: str) -> dict[str, Any]:
     """Get an individual ticket by ID and return it as a DICT"""
     row = conn.execute("SELECT * FROM courses WHERE id = ?", (course_id,)).fetchone()
     return _row_to_course(row) if row else None
+
+def create_course_sql(conn: sqlite3.Connection, course: dict[str, Any]) -> None:
+    """Insert a single course into the database based on the course dict provided."""
+    conn.execute(
+        """
+            INSERT INTO courses
+                (course_code, title, instructor, semester,
+                 days, start_time, end_time, capacity)
+            VALUES (:course_code, :title, :instructor, :semester,
+                    :days, :start_time, :end_time, :capacity)
+        """,
+        {**course}
+    )
+    return
+
+def update_course_sql(conn: sqlite3.Connection, course: dict[str, Any]) -> None:
+    """Update a course and store the new fields into the database """
+
+    conn.execute(
+        """
+        UPDATE courses
+        SET course_code = :course_code,
+            title       = :title,
+            instructor  = :instructor,
+            semester    = :semester,
+            days        = :days,
+            start_time  = :start_time,
+            end_time    = :end_time,
+            capacity    = :capacity,
+            updated_at  = :updated_at
+        WHERE id = :id
+        """,
+        {**course}
+    )
+
+def delete_course_sql(conn: sqlite3.Connection, id: dict[str, Any]) -> None:
+    """Delete a course from the database"""
+
+    conn.execute(
+        """
+        DELETE from courses WHERE id = :id
+
+        """,
+        {"id": id}
+    )

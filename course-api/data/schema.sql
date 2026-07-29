@@ -34,7 +34,6 @@ CREATE TABLE IF NOT EXISTS enrollments (
     grade             TEXT,                                      -- null until course over
     waitlist_position INTEGER,                                   -- FIFO order; null unless waitlisted
 
-    created_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
 
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE

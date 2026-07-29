@@ -36,3 +36,16 @@ class CourseCreate(BaseModel):
     days: Days
     start_time: int | None = Field(default=None, ge=8, le=18)
     end_time: int | None = Field(default=None, ge=9, le=21)
+
+class CourseUpdate(BaseModel):
+    """Schema for PATCH /courses/<id>. All fields optional """
+
+    model_config = ConfigDict(extra="forbid")
+
+    instructor: str | None = Field(default=None, min_length=1, max_length=100)
+    capacity: int | None = Field(default=None, ge=0, le=1000)
+    semester: Semester | None = None
+    days: Days | None = None
+    start_time: int | None = Field(default=None, ge=8, le=18)
+    end_time: int | None = Field(default=None, ge=9, le=21)
+
