@@ -20,7 +20,7 @@ class Enrollment(BaseModel):
     enrolled_at: datetime
     updated_at: datetime
 
-class CreateEnrollment(BaseModel):
+class EnrollmentCreate(BaseModel):
 
     course_id: int
     student_id: str = Field(pattern=STUDENT_ID_PATTERN)

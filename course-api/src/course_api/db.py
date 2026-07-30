@@ -22,6 +22,7 @@ def connect(db_path: Path | str = _DEFAULT_DB_PATH) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path, isolation_level = None) #isolation_level = None -> control when transactions start. Necessary to prevent race conditions. 
     conn.row_factory = sqlite3.Row # w/o this rows comeback as tuples rather than dict row [""]
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA budy_timeout = 5000")
     return conn
 
 #get an already existing connection

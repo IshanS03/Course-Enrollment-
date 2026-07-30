@@ -23,10 +23,20 @@ def list_enrollments_for_course(
         limit: int = 100,) -> list[dict[str, Any]]:
     """The service function that will facilitate getting a list of enrollments."""
 
-    sql = f"SELECT * FROM enrollments where id = ? ORDER BY enrolled_at DESC LIMIT ?"
+    #idx_enrollments_course_status used here 
+    sql = f"SELECT * FROM enrollments where course_id = ? ORDER BY enrolled_at DESC LIMIT ?"
 
     return [_row_to_enrollment(row) for row in conn.execute(sql, (course_id, limit)).fetchall()] # want to get a list of dicts not a list of sqlite3.Row's
 
+def count_enrolled_for_course(conn: sqlite3.Connection, course_id: int) -> int:
+    """Count active enrolled students in a course."""
+    
+     #idx_enrollments_course_status used here 
+    row = conn.execute(
+        "SELECT COUNT(*) AS cnt FROM enrollments WHERE course_id = ? AND status = 'enrolled'",
+        (course_id,)
+    ).fetchone()
+    return row["cnt"]
 
 
 def create_enrollment_sql(conn: sqlite3.Connection, enrollment: dict[str, Any]) -> None:
