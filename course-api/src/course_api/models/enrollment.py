@@ -25,9 +25,10 @@ class EnrollmentCreate(BaseModel):
     course_id: int
     student_id: str = Field(pattern=STUDENT_ID_PATTERN)
     student_name: str = Field(min_length=1, max_length=100)
-    status: Status
-    grade: str | None = Field(default=None, max_length=2)
-    waitlist_position: int | None = Field(default=None, ge=1)
-    enrolled_at: datetime
-    updated_at: datetime
 
+
+class EnrollmentUpdate(BaseModel):
+
+    
+    status: Status | None = None
+    grade: str | None = Field(default=None, max_length=2)

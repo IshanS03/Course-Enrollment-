@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, g, current_app, request
 from course_api.db import connect
 from course_api.repository.courses import list_courses_sql, get_course_sql, create_course_sql, update_course_sql, delete_course_sql
+from course_api.service.course_handling import update_course_service
 from course_api.models.course import CourseCreate, CourseUpdate
 import uuid
 
@@ -68,22 +69,16 @@ def edit_course(course_id):
         updates a course based on the ID provided.
     """
     conn = _db()
-    course = get_course_sql(conn,  course_id) 
+
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    data = CourseUpdate.model_validate(request.get_json(silent = True) or {})
+   
+    course = update_course_service(conn, course_id, data.model_dump(exclude_unset = True), now)
 
     if course is None:
         #create custom CourseNotFound exception here
         return
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-    data = CourseUpdate.model_validate(request.get_json(silent = True) or {})
-    #data is a pydantic object, must dump it into dict
-    #exclude_unset set so that only fields the client sent will change 
-    for field, value in data.model_dump(exclude_unset=True).items():
-        course[field] = value
 
-    course["updated_at"] = now
-    update_course_sql(conn, course)
-
-    conn.commit()
     return course, 200
 
 @bp.route("<course_id>", methods = ["DELETE"])
