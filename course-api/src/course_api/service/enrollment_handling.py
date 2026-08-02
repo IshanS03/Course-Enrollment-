@@ -2,6 +2,7 @@
 import sqlite3
 from datetime import datetime, timezone
 from typing import Any
+from course_api.api.errors import CourseNotFound, EnrollmentNotFound
 from course_api.repository.courses import get_course_sql
 from course_api.repository.enrollments import create_enrollment_sql, get_enrollment_sql, update_enrollment_sql, count_enrolled_for_course, get_first_in_line, promote_student, renumber_waitlist
 
@@ -25,8 +26,10 @@ def create_enrollment_service(conn: sqlite3.Connection, enrollment: dict[str, An
     try:
         course = get_course_sql(conn, enrollment["course_id"])
         if course is None:
-            #raise custom error here
-            return
+            raise CourseNotFound(enrollment["course_id"])
+
+        #No grade is set when a student enrolls, and the default value for grade is None. 
+        enrollment.setdefault("grade", None)
 
         enrolled_count = count_enrolled_for_course(conn, course_id=course["id"])
         #check if course capacity would be exceeded
@@ -37,7 +40,9 @@ def create_enrollment_service(conn: sqlite3.Connection, enrollment: dict[str, An
             enrollment["status"] = "enrolled"
             enrollment["waitlist_position"] = None
 
-        create_enrollment_sql(conn, enrollment)
+        #SQLite assigns the id via AUTOINCREMENT, read it back so the response
+        #carries the real row id.
+        enrollment["id"] = create_enrollment_sql(conn, enrollment)
         conn.execute("COMMIT")
         return enrollment
 
@@ -56,9 +61,7 @@ def update_enrollment_service(conn: sqlite3.Connection, enrollment_id: str, upda
     try:
         enrollment = get_enrollment_sql(conn, enrollment_id)
         if enrollment is None:
-            # raise custom exception here
-
-            return
+            raise EnrollmentNotFound(enrollment_id)
 
         old_position = enrollment["waitlist_position"]
 
@@ -94,12 +97,22 @@ def update_enrollment_service(conn: sqlite3.Connection, enrollment_id: str, upda
         conn.execute("ROLLBACK")
         raise
 
-def drop_enrollment_service(conn: sqlite3.Connection, enrollment_id: str) -> dict[str, Any] | None:
+def drop_enrollment_service(conn: sqlite3.Connection, enrollment_id: str) -> dict[str, Any]:
 
-    """Service function for the drop enrollment route. Rows are never deleted, kept for auditing
+    """Service function for the drop enrollment route. Rows are never deleted,
     and the partial unique index excludes them so the student can re-enroll later."""
 
-    return update_enrollment_service(conn, enrollment_id, {"status": "dropped"})
+    enrollment = get_enrollment_sql(conn, enrollment_id)
+    if enrollment is None:
+        raise EnrollmentNotFound(enrollment_id)
+    course = get_course_sql(conn, enrollment["course_id"])
+    if course is None:
+        raise CourseNotFound(enrollment["course_id"])
+    #A course with no deadline set can be dropped normally
+    deadline = course["drop_deadline"]
+    status = "late_drop" if deadline is not None and _now() > deadline else "dropped"
+
+    return update_enrollment_service(conn, enrollment_id, {"status": status})
 
 
 ######  HELPERS  ######
@@ -122,10 +135,12 @@ def _next_waitlist_position(conn: sqlite3.Connection, course_id: int) -> int:
 def promote_next_waitlisted(conn: sqlite3.Connection, course_id: int, now: str):
     "Fill one freed seat from a waitlist if anyone is waiting and there is room"
 
+    #None here is helps flow, should not raise an exception.
+    #callers loop until this returns None.
+
     course = get_course_sql(conn, course_id)
     if course is None:
-        return 
-    #Custom exception here
+        return None
 
     #Ensure that a seat ACTUALLY opened
     if count_enrolled_for_course(conn, course_id) >= course["capacity"]:

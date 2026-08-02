@@ -6,7 +6,7 @@ from course_api.db import connect
 from course_api.repository.courses import list_courses_sql, get_course_sql, create_course_sql, update_course_sql, delete_course_sql
 from course_api.service.course_handling import update_course_service
 from course_api.models.course import CourseCreate, CourseUpdate
-import uuid
+from course_api.api.errors import CourseNotFound
 
 bp = Blueprint("course", __name__)
 
@@ -36,13 +36,12 @@ def get_course(course_id: str):
     """GET /courses/{id}
         returns an individual course based on the ID provided.
     """
-    course = get_course_sql( _db(),  course_id) 
+    course = get_course_sql( _db(),  course_id)
 
     if course is None:
-        #create custom CourseNotFound exception here
-        return
-    else:
-        return course
+        raise CourseNotFound(course_id)
+
+    return course
 
 @bp.route("", methods=["POST"])
 def create_course():
@@ -52,14 +51,14 @@ def create_course():
     data = CourseCreate.model_validate(request.get_json(silent=True) or {})
     conn = _db()
     now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-    id = str(uuid.uuid4())
     new_course = {
         **data.model_dump(),
-        "id": id, # will possibly change this
         "created_at": now,
         "updated_at": now,
     }
-    create_course_sql(conn, new_course)
+    #SQLite assigns the id via AUTOINCREMENT, read it back so the response
+    #carries the real row id rather than a client-side guess.
+    new_course["id"] = create_course_sql(conn, new_course)
     conn.commit()
     return new_course, 201
 
@@ -73,11 +72,8 @@ def edit_course(course_id):
     now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     data = CourseUpdate.model_validate(request.get_json(silent = True) or {})
    
+    # CAN raise CourseNotFound OR CapacityBelowEnrolled
     course = update_course_service(conn, course_id, data.model_dump(exclude_unset = True), now)
-
-    if course is None:
-        #create custom CourseNotFound exception here
-        return
 
     return course, 200
 
@@ -87,15 +83,14 @@ def delete_course(course_id):
         deletes an individual course based on the ID provided.
     """
     conn = _db()
-    course = get_course_sql(conn,  course_id) 
+    course = get_course_sql(conn,  course_id)
 
     if course is None:
-        #create custom CourseNotFound exception here
-        return
+        raise CourseNotFound(course_id)
 
     delete_course_sql(conn, course_id)
     conn.commit()
-    return 204
+    return "", 204
 
 
 

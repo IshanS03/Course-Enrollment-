@@ -22,7 +22,7 @@ def connect(db_path: Path | str = _DEFAULT_DB_PATH) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path, isolation_level = None) #isolation_level = None -> control when transactions start. Necessary to prevent race conditions. 
     conn.row_factory = sqlite3.Row # w/o this rows comeback as tuples rather than dict row [""]
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("PRAGMA budy_timeout = 5000")
+    conn.execute("PRAGMA busy_timeout = 5000")
     return conn
 
 #get an already existing connection
@@ -68,9 +68,9 @@ def seed_from_json(db_path: Path | str | None = None) -> int:
             """
                 INSERT OR REPLACE INTO courses
                     (course_code, title, instructor, semester,
-                     days, start_time, end_time, capacity)
+                     days, drop_deadline, start_time, end_time, capacity)
                     VALUES (:course_code, :title, :instructor, :semester,
-                            :days, :start_time, :end_time, :capacity)
+                            :days, :drop_deadline, :start_time, :end_time, :capacity)
             """, courses
         )
        

@@ -5,6 +5,7 @@ from flask import Blueprint, g, current_app, request
 from course_api.db import connect
 from course_api.repository.enrollments import list_enrollments_sql, get_enrollment_sql
 from course_api.models.enrollment import EnrollmentCreate, EnrollmentUpdate, Status
+from course_api.api.errors import EnrollmentNotFound
 from course_api.service.enrollment_handling import create_enrollment_service, update_enrollment_service, drop_enrollment_service
 
 bp = Blueprint("enrollment", __name__)
@@ -47,10 +48,9 @@ def get_enrollment(enrollment_id: str):
     enrollment = get_enrollment_sql( _db(),  enrollment_id)
 
     if enrollment is None:
-        #create custom EnrollmentNotFound exception here
-        return
-    else:
-        return enrollment
+        raise EnrollmentNotFound(enrollment_id)
+
+    return enrollment
 
 @bp.route("", methods=["POST"])
 def create_enrollment():
@@ -76,13 +76,11 @@ def edit_enrollment(enrollment_id):
     data = EnrollmentUpdate.model_validate(request.get_json(silent = True) or {})
     #data is a pydantic object, must dump it into dict
     #exclude_unset set so that only fields the client sent will change
+    
+    # CAN raise EnrollmentNotFound
     enrollment = update_enrollment_service(
         _db(), enrollment_id, data.model_dump(exclude_unset=True)
     )
-
-    if enrollment is None:
-        #create custom enrollmentNotFound exception here
-        return
 
     return enrollment, 200
 
@@ -92,11 +90,8 @@ def drop_enrollment(enrollment_id):
         drops a student from a course. The row is retained for auditing rather than
         deleted, and the freed seat promotes the first student off the waitlist.
     """
+    #CAN Raises EnrollmentNotFound OR CourseNotFound
     enrollment = drop_enrollment_service(_db(), enrollment_id)
-
-    if enrollment is None:
-        #create custom enrollmentNotFound exception here
-        return
 
     return enrollment, 200
 

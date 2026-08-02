@@ -17,6 +17,7 @@ def _row_to_course(row: sqlite3.Row) -> dict[str, Any]:
         "end_time": row["end_time"],
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
+        "drop_deadline": row["drop_deadline"],
     }
 
 
@@ -48,19 +49,21 @@ def get_course_sql(conn: sqlite3.Connection, course_id: str) -> dict[str, Any]:
     row = conn.execute("SELECT * FROM courses WHERE id = ?", (course_id,)).fetchone()
     return _row_to_course(row) if row else None
 
-def create_course_sql(conn: sqlite3.Connection, course: dict[str, Any]) -> None:
-    """Insert a single course into the database based on the course dict provided."""
-    conn.execute(
+def create_course_sql(conn: sqlite3.Connection, course: dict[str, Any]) -> int:
+    """Insert a single course into the database based on the course dict provided.
+    Returns the id SQLite assigned to the new row."""
+    cur = conn.execute(
         """
             INSERT INTO courses
                 (course_code, title, instructor, semester,
-                 days, start_time, end_time, capacity)
+                 days, drop_deadline, start_time, end_time, capacity)
             VALUES (:course_code, :title, :instructor, :semester,
-                    :days, :start_time, :end_time, :capacity)
+                    :days, :drop_deadline, :start_time, :end_time, :capacity)
         """,
         {**course}
     )
-    return
+    #returns the id SQLite assigned to the new row
+    return cur.lastrowid
 
 def update_course_sql(conn: sqlite3.Connection, course: dict[str, Any]) -> None:
     """Update a course and store the new fields into the database """
@@ -68,15 +71,16 @@ def update_course_sql(conn: sqlite3.Connection, course: dict[str, Any]) -> None:
     conn.execute(
         """
         UPDATE courses
-        SET course_code = :course_code,
-            title       = :title,
-            instructor  = :instructor,
-            semester    = :semester,
-            days        = :days,
-            start_time  = :start_time,
-            end_time    = :end_time,
-            capacity    = :capacity,
-            updated_at  = :updated_at
+        SET course_code   = :course_code,
+            title         = :title,
+            instructor    = :instructor,
+            semester      = :semester,
+            days          = :days,
+            drop_deadline = :drop_deadline,
+            start_time    = :start_time,
+            end_time      = :end_time,
+            capacity      = :capacity,
+            updated_at    = :updated_at
         WHERE id = :id
         """,
         {**course}

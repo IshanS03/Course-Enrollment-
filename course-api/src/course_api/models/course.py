@@ -18,6 +18,7 @@ class Course(BaseModel):
     capacity: int = Field(ge=0, le=1000)
     semester: Semester
     days: Days
+    drop_deadline: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     start_time: int | None = Field(default=None, ge=8, le=18)
     end_time: int | None = Field(default=None, ge=9, le=21)
     created_at: datetime
@@ -34,6 +35,7 @@ class CourseCreate(BaseModel):
     capacity: int = Field(ge=0, le=1000)
     semester: Semester
     days: Days
+    drop_deadline: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")  # ISO 8601 date string. ("2026-10-15")
     start_time: int | None = Field(default=None, ge=8, le=18)
     end_time: int | None = Field(default=None, ge=9, le=21)
 

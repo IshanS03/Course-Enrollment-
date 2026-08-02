@@ -1,6 +1,7 @@
 
 import sqlite3
 from typing import Any
+from course_api.api.errors import CapacityBelowEnrolled, CourseNotFound
 from course_api.repository.courses import get_course_sql, update_course_sql
 from course_api.repository.enrollments import count_enrolled_for_course
 from course_api.service.enrollment_handling import promote_next_waitlisted
@@ -14,16 +15,15 @@ def update_course_service(conn: sqlite3.Connection, course_id, updates: dict[str
     try:
         course = get_course_sql(conn, course_id)
         if course is None:
-            # raise custom exception here
-            return
+            raise CourseNotFound(course_id)
 
         capacity = course["capacity"]
         new_capacity = updates.get("capacity", capacity)
 
         #You're trying to reduce capacity below the number of students in the course (NOT VALID)
-        if new_capacity < count_enrolled_for_course(conn, course_id):
-            # raise custom exception here
-            return
+        enrolled_count = count_enrolled_for_course(conn, course_id)
+        if new_capacity < enrolled_count:
+            raise CapacityBelowEnrolled(course_id, new_capacity, enrolled_count)
 
         #.update overwrites existing keys and adds new ones, leaves unchanged ones in place
         course.update(updates)

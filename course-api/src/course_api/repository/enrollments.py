@@ -54,9 +54,10 @@ def get_enrollment_sql(conn: sqlite3.Connection, enrollment_id: str) -> dict[str
 
 
 
-def create_enrollment_sql(conn: sqlite3.Connection, enrollment: dict[str, Any]) -> None:
-    """Insert a single enrollment into the database based on the enrollment dict provided."""
-    conn.execute(
+def create_enrollment_sql(conn: sqlite3.Connection, enrollment: dict[str, Any]) -> int:
+    """Insert a single enrollment into the database based on the enrollment dict provided.
+    Returns the id SQLite assigned to the new row."""
+    cur = conn.execute(
         """
             INSERT INTO enrollments
                 (course_id, student_id, student_name, status,
@@ -66,8 +67,8 @@ def create_enrollment_sql(conn: sqlite3.Connection, enrollment: dict[str, Any]) 
         """,
         {**enrollment}
     )
-    
-    return
+
+    return cur.lastrowid
 
 def update_enrollment_sql(conn: sqlite3.Connection, enrollment: dict[str, Any]) -> None:
     """Update a enrollment and store the new fields into the database """
