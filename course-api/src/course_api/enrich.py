@@ -8,10 +8,29 @@ from openai import AzureOpenAI
 
 load_dotenv()
 
-TEMPERATURE: float = 0.0
-MAX_TOKENS: int = 300
+TEMPERATURE = 0.0
+#Covers reasoning tokens plus the visible JSON on reasoning-capable
+#deployments. Too low truncates mid-object, which surfaces as a
+#ValidationError and a silent 'failed'. A full blurb uses well under this.
+MAX_TOKENS: int = 800
 RESPONSE_FORMAT = {"type": "json_object"}
-SYSTEM_PROMPT = "ONLY use the provided objectives. Do not invent outcomes not backed by the objectives"
+
+#RAI safeguard #1: constrains scope and forbids fabricating facts not backed by
+#the objectives.
+SYSTEM_PROMPT = """You write catalog blurbs for university courses.
+
+ONLY use the provided objectives. Do not invent outcomes not backed by the
+objectives. Never state prerequisites, accreditation, credit hours, or career
+guarantees - those are not yours to assert.
+
+Return a JSON object with exactly these keys:
+  overview          string, one paragraph, 50-1200 characters
+  learning_outcomes array of exactly 3 short strings
+  target_audience   one of "Undergraduate", "Graduate", "Professional", "General"
+  confidence        number 0.0-1.0, how well the objectives supported this blurb
+
+If the objectives are too thin to support three distinct outcomes, still return
+three, and lower confidence to reflect it."""
 
 
 class EnrichmentRefused(Exception):
@@ -20,34 +39,59 @@ class EnrichmentRefused(Exception):
 
 @dataclass(frozen=True)
 class AzureConfig:
-    """Config for OPENAI service."""
-    endpoint: str = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
-    api_key: str = os.environ.get("AZURE_OPENAI_API_KEY", "")
-    deployment_name: str = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "")
+    """Connection settings for the Azure OpenAI deployment."""
+
+    endpoint: str
+    api_key: str
+    deployment_name: str
+    api_version: str
+
+
+def config_from_env() -> AzureConfig | None:
+    """Read Azure settings from environment.
+
+    Returns None when any setting is missing, allows app to use test suite without failing.
+    """
+    endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
+    api_key = os.environ.get("AZURE_OPENAI_API_KEY", "")
+    deployment_name = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "")
+    api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "")
+
+    if not all([endpoint, api_key, deployment_name, api_version]):
+        return None
+    return AzureConfig(endpoint, api_key, deployment_name, api_version)
 
 
 class AzureEnrichmentClient:
     """Azure client for generating course enrichment data."""
 
-    def __init__(self, config: AzureConfig = AzureConfig()) -> None:
+    def __init__(self, config: AzureConfig) -> None:
         self.config = config
-
-    def generate_enrichment(self, course_code: str, learning_objectives: str) -> CourseEnrichment:
-        """Generate enrichment data for a course based on its learning objectives."""
-        client = AzureOpenAI(
+        #Built once and reused
+        self._client = AzureOpenAI(
             timeout=10.0,
             max_retries=1,
-            azure_endpoint=self.config.endpoint,
-            api_key=self.config.api_key,
+            azure_endpoint=config.endpoint,
+            api_key=config.api_key,
+            api_version=config.api_version,
         )
-        response = client.chat.completions.create(
+
+    def generate_enrichment(self, course_code: str, learning_objectives: str) -> CourseEnrichment:
+        """Generate enrichment data for a course based on its learning objectives.
+
+        Call Azure OpenAI endpoint with user and system message, return structured CourseEnrichment DTO
+        and raise EnrichmentRefused on a malformed response,
+        
+        """
+        response = self._client.chat.completions.create(
             model=self.config.deployment_name,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": f"Course code: {course_code}\nLearning objectives: {learning_objectives}"}
             ],
             temperature=TEMPERATURE,
-            max_tokens=MAX_TOKENS,
+            #Newer deployments reject max_tokens and require this name.
+            max_completion_tokens=MAX_TOKENS,
             response_format=RESPONSE_FORMAT,
         )
 
@@ -58,3 +102,11 @@ class AzureEnrichmentClient:
                 f"Content filter triggered or empty response: {choice.finish_reason}"
             )
         return CourseEnrichment.model_validate_json(content)
+
+
+def build_client() -> AzureEnrichmentClient | None:
+    """Build an AzureEnrichmentClient, or None when Azure is not configured."""
+    config = config_from_env()
+    if config is None:
+        return None
+    return AzureEnrichmentClient(config)

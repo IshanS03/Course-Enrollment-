@@ -4,12 +4,14 @@ from datetime import datetime
 
 Semester = Literal["Fall 2026", "Spring 2027", "Fall 2027", "Spring 2028"]
 Days = Literal["MWF", "TTH"]
+TargetAudience = Literal["Undergraduate", "Graduate", "Professional", "General"]
 
 # Course codes look like "CS-301" or "MATH-101": 2-4 uppercase letters, dash, three digits.
 COURSE_CODE_PATTERN = r"^[A-Z]{2,4}-\d{3}$"
 
 
 class Course(BaseModel):
+
 
     id: int
     course_code: str = Field(pattern=COURSE_CODE_PATTERN)
@@ -23,6 +25,8 @@ class Course(BaseModel):
     end_time: int | None = Field(default=None, ge=9, le=21)
     created_at: datetime
     updated_at: datetime
+    learning_objectives: str | None = Field(default=None, min_length=20, max_length=2000)
+ 
 
 class CourseCreate(BaseModel):
     """Schema for POST /courses. Server assigns id, time_stamps, *maybe course_code?"""
@@ -38,16 +42,28 @@ class CourseCreate(BaseModel):
     drop_deadline: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")  # ISO 8601 date string. ("2026-10-15")
     start_time: int | None = Field(default=None, ge=8, le=18)
     end_time: int | None = Field(default=None, ge=9, le=21)
+    learning_objectives: str | None = Field(default=None, min_length=20, max_length=2000)
 
 class CourseUpdate(BaseModel):
     """Schema for PATCH /courses/<id>. All fields optional """
 
     model_config = ConfigDict(extra="forbid")
 
+    title: str | None = Field(default=None, min_length=5, max_length=200)
     instructor: str | None = Field(default=None, min_length=1, max_length=100)
     capacity: int | None = Field(default=None, ge=0, le=1000)
     semester: Semester | None = None
     days: Days | None = None
     start_time: int | None = Field(default=None, ge=8, le=18)
     end_time: int | None = Field(default=None, ge=9, le=21)
+    learning_objectives: str | None = Field(default=None, min_length=20, max_length=2000)
 
+class CourseEnrichment(BaseModel):
+    """Schema for AI-generated enrichment data for a course."""
+
+    model_config = ConfigDict(extra="forbid")
+    overview: str = Field(min_length=50, max_length=1200)
+    learning_outcomes : list[str] = Field(min_length=3, max_length=3)
+    target_audience: TargetAudience
+    confidence: float = Field(ge=0.0, le=1.0)
+   

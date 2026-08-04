@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from typing import Any
 
@@ -11,15 +12,51 @@ def _row_to_course(row: sqlite3.Row) -> dict[str, Any]:
         "instructor": row["instructor"],
         "semester": row["semester"],
         "days": row["days"],
-        "semester": row["semester"],
         "capacity": row["capacity"],
         "start_time": row["start_time"],
         "end_time": row["end_time"],
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
         "drop_deadline": row["drop_deadline"],
+      
+        "learning_objectives": row["learning_objectives"],
+        #Enrichment is nested here so that the API can 
+        #return a single object with all enrichment data, but the database stores it in flat columns.
+        "enrichment": {
+            "status": row["enrichment_status"],
+        
+            "ai_generated": True, #This is the 2nd safeguard. 
+            "overview": row["enrichment_overview"],
+            #Stored as a JSON array; SQLite has no array type. NULL on any
+            #course that is still pending or whose enrichment failed.
+            "learning_outcomes": json.loads(row["enrichment_outcomes"]) if row["enrichment_outcomes"] else None,
+            "target_audience": row["enrichment_audience"],
+            "confidence": row["enrichment_confidence"],
+        },
     }
 
+##### HELPER 
+def _write_params(course: dict[str, Any]) -> dict[str, Any]:
+    """Flatten a course dict for INSERT/UPDATE.
+
+    Updates will call _row_to_course which will cause a mismatch in dict structure of course, 
+    must adjust for update_course_sql() to work properly.
+    """
+    nested = course.get("enrichment") or {}
+    outcomes = nested.get("learning_outcomes")
+    from_nested = {
+        "enrichment_status": nested.get("status"),
+        "enrichment_overview": nested.get("overview"),
+        #Came out of _decode_outcomes as a list; goes back as JSON.
+        "enrichment_outcomes": json.dumps(outcomes) if outcomes else None,
+        "enrichment_audience": nested.get("target_audience"),
+        "enrichment_confidence": nested.get("confidence"),
+    }
+    from_nested = {k: v for k, v in from_nested.items() if v is not None}
+
+    params = {**_ENRICHMENT_DEFAULTS, **from_nested, **course}
+    params.pop("enrichment", None)
+    return params
 
 def list_courses_sql(
         conn: sqlite3.Connection, 
@@ -49,6 +86,17 @@ def get_course_sql(conn: sqlite3.Connection, course_id: str) -> dict[str, Any]:
     row = conn.execute("SELECT * FROM courses WHERE id = ?", (course_id,)).fetchone()
     return _row_to_course(row) if row else None
 
+#Enrichment column defaults for a course dict that has not been enriched
+_ENRICHMENT_DEFAULTS: dict[str, Any] = {
+    "learning_objectives": None,
+    "enrichment_status": "pending",
+    "enrichment_overview": None,
+    "enrichment_outcomes": None,
+    "enrichment_audience": None,
+    "enrichment_confidence": None,
+}
+
+
 def create_course_sql(conn: sqlite3.Connection, course: dict[str, Any]) -> int:
     """Insert a single course into the database based on the course dict provided.
     Returns the id SQLite assigned to the new row."""
@@ -56,11 +104,15 @@ def create_course_sql(conn: sqlite3.Connection, course: dict[str, Any]) -> int:
         """
             INSERT INTO courses
                 (course_code, title, instructor, semester,
-                 days, drop_deadline, start_time, end_time, capacity)
+                 days, drop_deadline, start_time, end_time, capacity,
+                 learning_objectives, enrichment_overview, enrichment_outcomes,
+                 enrichment_audience, enrichment_confidence, enrichment_status)
             VALUES (:course_code, :title, :instructor, :semester,
-                    :days, :drop_deadline, :start_time, :end_time, :capacity)
+                    :days, :drop_deadline, :start_time, :end_time, :capacity,
+                    :learning_objectives, :enrichment_overview, :enrichment_outcomes,
+                    :enrichment_audience, :enrichment_confidence, :enrichment_status)
         """,
-        {**course}
+        _write_params(course)
     )
     #returns the id SQLite assigned to the new row
     return cur.lastrowid
@@ -80,10 +132,16 @@ def update_course_sql(conn: sqlite3.Connection, course: dict[str, Any]) -> None:
             start_time    = :start_time,
             end_time      = :end_time,
             capacity      = :capacity,
+            learning_objectives   = :learning_objectives,
+            enrichment_overview   = :enrichment_overview,
+            enrichment_outcomes   = :enrichment_outcomes,
+            enrichment_audience   = :enrichment_audience,
+            enrichment_confidence = :enrichment_confidence,
+            enrichment_status     = :enrichment_status,
             updated_at    = :updated_at
         WHERE id = :id
         """,
-        {**course}
+        _write_params(course)
     )
 
 def delete_course_sql(conn: sqlite3.Connection, id: dict[str, Any]) -> None:

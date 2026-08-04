@@ -40,7 +40,7 @@ def get_enrollments():
     return { "count": len(enrollments), "items": enrollments }
 
 
-@bp.route("<enrollment_id>", methods = ["GET"])
+@bp.route("/<enrollment_id>", methods = ["GET"])
 def get_enrollment(enrollment_id: str):
     """GET /enrollments/{id}
         returns an individual enrollment based on the ID provided.
@@ -68,7 +68,7 @@ def create_enrollment():
     enrollment = create_enrollment_service(conn, new_enrollment)
     return enrollment, 201
 
-@bp.route("<enrollment_id>", methods = ["PATCH"])
+@bp.route("/<enrollment_id>", methods = ["PATCH"])
 def edit_enrollment(enrollment_id):
     """PATCH /enrollments/{id}
         updates a enrollment based on the ID provided.
@@ -84,7 +84,7 @@ def edit_enrollment(enrollment_id):
 
     return enrollment, 200
 
-@bp.route("<enrollment_id>", methods = ["DELETE"])
+@bp.route("/<enrollment_id>", methods = ["DELETE"])
 def drop_enrollment(enrollment_id):
     """DELETE /enrollments/{id}
         drops a student from a course. The row is retained for auditing rather than

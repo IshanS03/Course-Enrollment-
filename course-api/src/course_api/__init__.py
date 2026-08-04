@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import structlog
 from flask import Flask
 from course_api.api.blueprints.course import bp as course_bp
 from course_api.api.blueprints.enrollment import bp as enrollment_bp
@@ -8,10 +9,13 @@ from course_api.api.blueprints.health import bp as h
 from course_api.api.errors import register_error_handlers
 from course_api.db import init_db, close_connection
 from course_api.api.middleware import register_request_logging
+from course_api.enrich import build_client
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
+
+log = structlog.get_logger(__name__)
 
 _DEFAULT_DB_PATH = (
     Path(__file__).resolve().parent.parent.parent / "data" / "courses.db"
@@ -29,6 +33,14 @@ def create_app(db_path : str | None  = None) -> Flask:
     )
 
     init_db(app.config["DB_PATH"])
+
+    #Built once per app. Stays None when Azure env vars are absent,
+    #'pending' enrichment instead of faliure
+    try:
+        app.config["ENRICHMENT_CLIENT"] = build_client()
+    except Exception:
+        log.warning("enrichment_client_unavailable", exc_info=True)
+        app.config["ENRICHMENT_CLIENT"] = None
 
 
     # mount the blueprints to the flask app

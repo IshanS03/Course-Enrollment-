@@ -13,12 +13,12 @@ CREATE TABLE IF NOT EXISTS courses (
     capacity             INTEGER NOT NULL CHECK (capacity >= 0),
 
     -- AI enrichment columns should go here.
-    learning_objectives     TEXT,                                    -- optional: AI-generated learning objectives
-    enchrichment_overview   TEXT,                                    -- optional: AI-generated course overview
+    learning_objectives     TEXT,                                    -- optional
+    enrichment_overview   TEXT,                                    -- optional
     enrichment_outcomes     TEXT,
     enrichment_audience     TEXT,
     enrichment_confidence   REAL,
-    enrichment_status       TEXT NOT NULL DEFAULT 'pending' CHECK (enrichment_status IN ('pending', 'completed', 'failed')),
+    enrichment_status       TEXT NOT NULL DEFAULT 'pending' CHECK (enrichment_status IN ('pending', 'complete', 'failed')),
 
     created_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
@@ -38,8 +38,8 @@ CREATE TABLE IF NOT EXISTS enrollments (
     status            TEXT    NOT NULL DEFAULT 'enrolled'
                               CHECK (status IN ('enrolled', 'waitlisted', 'dropped',
                                                 'completed', 'late_drop')),
-    grade             TEXT,                                      -- null until course over
-    waitlist_position INTEGER,                                   -- FIFO order; null unless waitlisted
+    grade             TEXT,                                      
+    waitlist_position INTEGER,                                   -- FIFO order
 
     updated_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
 
