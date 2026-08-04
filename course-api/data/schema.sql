@@ -7,11 +7,18 @@ CREATE TABLE IF NOT EXISTS courses (
     instructor           TEXT,
     semester             TEXT    NOT NULL,                       -- e.g. "Fall 2026"
     days                 TEXT    NOT NULL,
-    start_time           INTEGER NOT NULL,
-    end_time             INTEGER NOT NULL,
+    drop_deadline        TEXT,                                    -- ISO 8601 date string; NULL means no deadline
+    start_time           INTEGER,                                 -- optional: times may not be set yet
+    end_time             INTEGER,
     capacity             INTEGER NOT NULL CHECK (capacity >= 0),
 
     -- AI enrichment columns should go here.
+    learning_objectives     TEXT,                                    -- optional: AI-generated learning objectives
+    enchrichment_overview   TEXT,                                    -- optional: AI-generated course overview
+    enrichment_outcomes     TEXT,
+    enrichment_audience     TEXT,
+    enrichment_confidence   REAL,
+    enrichment_status       TEXT NOT NULL DEFAULT 'pending' CHECK (enrichment_status IN ('pending', 'completed', 'failed')),
 
     created_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
