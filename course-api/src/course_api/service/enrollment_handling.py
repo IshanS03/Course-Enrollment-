@@ -2,9 +2,14 @@
 import sqlite3
 from datetime import datetime, timezone
 from typing import Any
+
+import structlog
+
 from course_api.api.errors import CourseNotFound, EnrollmentNotFound
 from course_api.repository.courses import get_course_sql
 from course_api.repository.enrollments import create_enrollment_sql, get_enrollment_sql, update_enrollment_sql, count_enrolled_for_course, get_first_in_line, promote_student, renumber_waitlist
+
+log = structlog.get_logger(__name__)
 
 #A student holding one of these is still in the course.
 _ACTIVE = ("enrolled", "waitlisted")
@@ -160,5 +165,13 @@ def promote_next_waitlisted(conn: sqlite3.Connection, course_id: int, now: str):
 
     #renumber the waitlist
     renumber_waitlist(conn, course["id"], vacated_pos, now)
+
+    #Should be logged since user isn't immediately notified
+    log.info(
+        "waitlist_promoted",
+        course_id=course_id,
+        enrollment_id=eligible_student["id"],
+        from_position=vacated_pos,
+    )
     return eligible_student
 

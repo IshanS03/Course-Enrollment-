@@ -1,6 +1,7 @@
 
 from datetime import datetime, timezone
 
+import structlog
 from flask import Blueprint, g, current_app, request
 from course_api.db import connect
 from course_api.repository.courses import list_courses_sql, get_course_sql, create_course_sql, update_course_sql, delete_course_sql
@@ -9,6 +10,8 @@ from course_api.models.course import CourseCreate, CourseUpdate
 from course_api.api.errors import CourseNotFound
 
 bp = Blueprint("course", __name__)
+
+log = structlog.get_logger(__name__)
 
 def _db():
     if "db" not in g:
@@ -65,6 +68,13 @@ def create_course():
     course_id = create_course_sql(conn, new_course)
     conn.commit()
 
+    log.info(
+        "course_created",
+        course_id=course_id,
+        course_code=new_course.get("course_code"),
+        enrichment_status=new_course.get("enrichment_status"),
+    )
+
     return get_course_sql(conn, course_id), 201
 
 @bp.route("/<course_id>", methods = ["PATCH"])
@@ -97,6 +107,9 @@ def delete_course(course_id):
 
     delete_course_sql(conn, course_id)
     conn.commit()
+
+    log.info("course_deleted", course_id=course_id)
+
     return "", 204
 
 

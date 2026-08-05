@@ -106,6 +106,13 @@ def enrich_course_fields(
         "enrichment_confidence": None,
     }
 
+   
+    log.info(
+        "enrichment_completed",
+        course_code=course.get("course_code"),
+        confidence=enrichment.confidence,
+    )
+
     #Only validated model output is persisted. Outcomes are a list and SQLite
     #has no array type, so they go in as a JSON array.
     return {
