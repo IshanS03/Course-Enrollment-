@@ -12,7 +12,7 @@ def test_create_course(client):
     assert response.status_code == 201
     body = response.get_json()
     assert isinstance(body["id"], int)
-    assert body["student_id"] == "CS-301"
+    assert body["course_code"] == "CS-311"
     assert body["capacity"] == 2
     assert body["enrichment"]["status"] == "pending"
 

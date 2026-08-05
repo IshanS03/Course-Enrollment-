@@ -42,9 +42,12 @@ def create_enrollment_service(conn: sqlite3.Connection, enrollment: dict[str, An
 
         #SQLite assigns the id via AUTOINCREMENT, read it back so the response
         #carries the real row id.
-        enrollment["id"] = create_enrollment_sql(conn, enrollment)
+        enrollment_id = create_enrollment_sql(conn, enrollment)
+        #Recall enrollment_id so the response carries the timestamps SQLite actually stored
+        #rather than the in-memory ones.
+        stored = get_enrollment_sql(conn, enrollment_id)
         conn.execute("COMMIT")
-        return enrollment
+        return stored
 
     except Exception:
         conn.execute("ROLLBACK")

@@ -63,7 +63,10 @@ def test_delete_enrollment(client, enrollment):
 )
 def test_create_enrollment_rejects_bad_fields(client, course, field, bad_value):
     """Pydantic rejects input with a 422 envelope."""
-    response = client.post("/enrollments", json=enrollment_payload(course["id"], **{field: bad_value}))
+    response = client.post(
+        "/enrollments",
+        json=enrollment_payload(**{"course_id": course["id"], field: bad_value}),
+    )
 
     assert response.status_code == 422
     body = response.get_json()
