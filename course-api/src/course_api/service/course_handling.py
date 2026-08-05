@@ -87,6 +87,7 @@ def enrich_course_fields(
 
     try:
         enrichment = client.generate_enrichment(
+            course["title"],
             course["course_code"],
             course["learning_objectives"],
         )

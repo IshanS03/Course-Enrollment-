@@ -19,7 +19,7 @@ RESPONSE_FORMAT = {"type": "json_object"}
 #the objectives.
 SYSTEM_PROMPT = """You write catalog blurbs for university courses.
 
-ONLY use the provided objectives. Do not invent outcomes not backed by the
+ONLY use the provided learning objectives, course title, and course code. Do not invent outcomes not backed by the
 objectives. Never state prerequisites, accreditation, credit hours, or career
 guarantees - those are not yours to assert.
 
@@ -76,18 +76,18 @@ class AzureEnrichmentClient:
             api_version=config.api_version,
         )
 
-    def generate_enrichment(self, course_code: str, learning_objectives: str) -> CourseEnrichment:
+    def generate_enrichment(self, title: str, course_code: str, learning_objectives: str) -> CourseEnrichment:
         """Generate enrichment data for a course based on its learning objectives.
 
         Call Azure OpenAI endpoint with user and system message, return structured CourseEnrichment DTO
         and raise EnrichmentRefused on a malformed response,
-        
+
         """
         response = self._client.chat.completions.create(
             model=self.config.deployment_name,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"Course code: {course_code}\nLearning objectives: {learning_objectives}"}
+                {"role": "user", "content": f"Course Title: {title}\n {course_code}\nLearning objectives: {learning_objectives}"}
             ],
             temperature=TEMPERATURE,
             #Newer deployments reject max_tokens and require this name.

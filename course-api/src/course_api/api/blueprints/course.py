@@ -7,7 +7,7 @@ from course_api.db import connect
 from course_api.repository.courses import list_courses_sql, get_course_sql, create_course_sql, update_course_sql, delete_course_sql
 from course_api.service.course_handling import update_course_service, enrich_course_fields
 from course_api.models.course import CourseCreate, CourseUpdate
-from course_api.api.errors import CourseNotFound
+from course_api.api.errors import CourseNotFound, ConfirmationRequired
 
 bp = Blueprint("course", __name__)
 
@@ -96,7 +96,7 @@ def edit_course(course_id):
 
 @bp.route("/<course_id>", methods = ["DELETE"])
 def delete_course(course_id):
-    """DELETE /courses/{id}
+    """DELETE /courses/{id}?confirm=true
         deletes an individual course based on the ID provided.
     """
     conn = _db()
@@ -105,6 +105,9 @@ def delete_course(course_id):
     if course is None:
         raise CourseNotFound(course_id)
 
+    if request.args.get("confirm") != "true":
+        raise ConfirmationRequired(course_id)
+    
     delete_course_sql(conn, course_id)
     conn.commit()
 

@@ -55,6 +55,18 @@ class CapacityBelowEnrolled(ConflictError):
             enrolled_count=enrolled_count,
         )
 
+class ConfirmationRequired(DomainError):
+    """No consent given to the deletion of the course"""
+    status_code = 400
+    error_code = "confirmation_required"
+
+    def __init__(self, course_id: str) -> None:
+        super().__init__(
+            f"cannot delete course {course_id} without confirmation"
+            "resend with ?confirm=true to proceed",
+            course_id=course_id,
+        )
+
 def register_error_handlers(app: Flask) -> None:
     """Wire handler functions to the app. Called from create_app()."""
 

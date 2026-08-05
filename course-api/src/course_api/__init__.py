@@ -14,6 +14,8 @@ from course_api.enrich import build_client
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
+from course_api.api.logging import configure_logging
+
 
 log = structlog.get_logger(__name__)
 
@@ -23,8 +25,7 @@ _DEFAULT_DB_PATH = (
 
 def create_app(db_path : str | None  = None) -> Flask:
 
-    #need to set up logging
-    #configure_logging()
+    configure_logging()
 
     app = Flask(__name__)
 
