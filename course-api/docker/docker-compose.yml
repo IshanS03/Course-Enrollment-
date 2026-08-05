@@ -7,11 +7,17 @@ services:
     ports:
     - "5000:5000"
 
+    #Read at runtime and injected into the container, so the key never enters
+    #an image layer. Path is relative to this compose file.
+    env_file:
+      - ../../.env
+
     environment:
       LOG_LEVEL: info
       LOG_JSON: "1"
       DB_PATH: /app/courses.db
       DATA_DIR: /app/data
+
 
     healthcheck:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:5000/ready').raise_for_status()"]
