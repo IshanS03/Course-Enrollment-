@@ -10,6 +10,7 @@ STUDENT_ID_PATTERN = r"^S-\d{4,6}$"
 
 class Enrollment(BaseModel):
 
+    ConfigDict(extra="forbid")
     id: int
     course_id: int
     student_id: str = Field(pattern=STUDENT_ID_PATTERN)
@@ -22,13 +23,14 @@ class Enrollment(BaseModel):
 
 class EnrollmentCreate(BaseModel):
 
+    ConfigDict(extra="forbid")
     course_id: int
     student_id: str = Field(pattern=STUDENT_ID_PATTERN)
-    student_name: str = Field(min_length=1, max_length=100)
+    student_name: str = Field(min_length=2, max_length=100)
 
 
 class EnrollmentUpdate(BaseModel):
 
-    
+    ConfigDict(extra="forbid")
     status: Status | None = None
     grade: str | None = Field(default=None, max_length=2)
