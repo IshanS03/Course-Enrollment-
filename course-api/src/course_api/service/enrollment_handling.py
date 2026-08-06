@@ -7,7 +7,7 @@ import structlog
 
 from course_api.api.errors import CourseNotFound, EnrollmentNotFound
 from course_api.repository.courses import get_course_sql
-from course_api.repository.enrollments import create_enrollment_sql, get_enrollment_sql, update_enrollment_sql, count_enrolled_for_course, get_first_in_line, promote_student, renumber_waitlist
+from course_api.repository.enrollments import create_enrollment_sql, get_enrollment_sql, update_enrollment_sql, delete_enrollment_sql, count_enrolled_for_course, get_first_in_line, promote_student, renumber_waitlist
 
 log = structlog.get_logger(__name__)
 
@@ -130,12 +130,26 @@ def update_enrollment_service(conn: sqlite3.Connection, enrollment_id: str, upda
 
 def drop_enrollment_service(conn: sqlite3.Connection, enrollment_id: str) -> dict[str, Any]:
 
-    """Service function for the drop enrollment route. Rows are never deleted,
-    and the partial unique index excludes them so the student can re-enroll later."""
+    """Service function for the drop enrollment route, An enrollment still holding a seat 
+    is soft dropped, so they can reapply later. 
+
+    If the enrollment is already inactive (dropped/late_drop/completed), there are holds no seat to free, so
+    it's hard-deleted instead of being rewritten."""
 
     enrollment = get_enrollment_sql(conn, enrollment_id)
     if enrollment is None:
         raise EnrollmentNotFound(enrollment_id)
+
+    if enrollment["status"] not in _ACTIVE:
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            delete_enrollment_sql(conn, enrollment_id)
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+        return enrollment
+
     course = get_course_sql(conn, enrollment["course_id"])
     if course is None:
         raise CourseNotFound(enrollment["course_id"])

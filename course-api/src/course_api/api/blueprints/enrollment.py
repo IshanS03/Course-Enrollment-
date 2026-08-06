@@ -114,8 +114,11 @@ def edit_enrollment(enrollment_id):
 @bp.route("/<enrollment_id>", methods = ["DELETE"])
 def drop_enrollment(enrollment_id):
     """DELETE /enrollments/{id}
-        drops a student from a course. The row is retained for auditing rather than
-        deleted, and the freed seat promotes the first student off the waitlist.
+        drops a student from a course. If the enrollment is currently enrolled or
+        waitlisted, the row is soft-dropped (retained for auditing) and the freed
+        seat promotes the first student off the waitlist. If the enrollment is
+        already dropped/late_drop/completed, there's no seat to free, so the row
+        is deleted outright.
     """
     #CAN Raises EnrollmentNotFound OR CourseNotFound
     enrollment = drop_enrollment_service(_db(), enrollment_id)
