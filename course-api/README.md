@@ -109,6 +109,37 @@ curl -X POST http://localhost:5000/courses \
 
 ---
 
+## Bonus Features
+
+### Rate limiting
+
+`flask-limiter` is wired once in `limiter.py` and applied in
+`create_app()`. A global default of `200 per minute` per IP covers every route;
+
+
+| Route | Limit |
+| --- | --- |
+| `POST /courses` | 10 per minute |
+| `POST /enrollments` | 100 per minute |
+| `POST /enrollments/bulk` | 100 per minute |
+
+Course post requests should be significantly less than enrollments due to the professor:student ratio being imbalanced.
+
+Write endpoints override global default with a tighter limit since they do more work per
+request
+
+### Bulk enrollment import
+
+`POST /enrollments/bulk` accepts a JSON array of enrollments and inserts them
+all-or-nothing. The whole array is validated in one pass via
+`TypeAdapter(list[EnrollmentCreate])` before any write happens; a single bad item
+returns `422` with that item's index and field errors, and nothing is inserted.
+
+Valid batches run inside one `BEGIN IMMEDIATE`/`COMMIT`, reusing the same
+capacity-check-then-insert logic as the single-enrollment path so waitlist positions come out correct even when a batch overflows one course's capacity partway through.
+
+---
+
 ## Documented Decisions
 
 ### Concurrent enrollment into the last seat
