@@ -173,8 +173,10 @@ nullable — a course without one can always be dropped normally.
 
 ### Deleting an enrollment
 
-Soft delete. `DELETE /enrollments/{id}` marks the row `dropped` or `late_drop` and
+Soft delete when enrollment is active. `DELETE /enrollments/{id}` marks the row `dropped` or `late_drop` and
 returns `200` with the updated record. Enrollment history is audit data.
+
+If there is a delete on a non-active enrollment, it is deleted from the database permanently.  
 
 Because the row survives, a plain unique constraint would block a student from ever
 re-enrolling. A partial unique index covers active statuses only, so a student
