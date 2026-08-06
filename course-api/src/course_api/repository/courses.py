@@ -25,7 +25,7 @@ def _row_to_course(row: sqlite3.Row) -> dict[str, Any]:
         "enrichment": {
             "status": row["enrichment_status"],
         
-            "ai_generated": True, #This is the 2nd safeguard. 
+            "ai_generated": bool(row["ai_generated"]), #This is the 2nd safeguard. 
             "overview": row["enrichment_overview"],
             #Stored as a JSON array; SQLite has no array type. NULL on any
             #course that is still pending or whose enrichment failed.
@@ -46,6 +46,7 @@ def _write_params(course: dict[str, Any]) -> dict[str, Any]:
     outcomes = nested.get("learning_outcomes")
     from_nested = {
         "enrichment_status": nested.get("status"),
+        "ai_generated": nested.get("ai_generated"),
         "enrichment_overview": nested.get("overview"),
         #Came out of _decode_outcomes as a list; goes back as JSON.
         "enrichment_outcomes": json.dumps(outcomes) if outcomes else None,
@@ -90,6 +91,7 @@ def get_course_sql(conn: sqlite3.Connection, course_id: str) -> dict[str, Any]:
 _ENRICHMENT_DEFAULTS: dict[str, Any] = {
     "learning_objectives": None,
     "enrichment_status": "pending",
+    "ai_generated": 0,
     "enrichment_overview": None,
     "enrichment_outcomes": None,
     "enrichment_audience": None,
@@ -106,11 +108,13 @@ def create_course_sql(conn: sqlite3.Connection, course: dict[str, Any]) -> int:
                 (course_code, title, instructor, semester,
                  days, drop_deadline, start_time, end_time, capacity,
                  learning_objectives, enrichment_overview, enrichment_outcomes,
-                 enrichment_audience, enrichment_confidence, enrichment_status)
+                 enrichment_audience, enrichment_confidence, enrichment_status,
+                 ai_generated)
             VALUES (:course_code, :title, :instructor, :semester,
                     :days, :drop_deadline, :start_time, :end_time, :capacity,
                     :learning_objectives, :enrichment_overview, :enrichment_outcomes,
-                    :enrichment_audience, :enrichment_confidence, :enrichment_status)
+                    :enrichment_audience, :enrichment_confidence, :enrichment_status,
+                    :ai_generated)
         """,
         _write_params(course)
     )
@@ -138,6 +142,7 @@ def update_course_sql(conn: sqlite3.Connection, course: dict[str, Any]) -> None:
             enrichment_audience   = :enrichment_audience,
             enrichment_confidence = :enrichment_confidence,
             enrichment_status     = :enrichment_status,
+            ai_generated          = :ai_generated,
             updated_at    = :updated_at
         WHERE id = :id
         """,

@@ -38,13 +38,10 @@ class EnrollmentNotFound(DomainError):
         super().__init__(f"no enrollment with id {enrollment_id}", enrollment_id=enrollment_id)
 
 
-class ConflictError(DomainError):
-    status_code = 409
-    error_code = "conflict"
 
-
-class CapacityBelowEnrolled(ConflictError):
+class CapacityBelowEnrolled(DomainError):
     """Capacity cannot shrink past the students already holding seats."""
+    status_code = 409
     error_code = "capacity_below_enrolled"
 
     def __init__(self, course_id: str, new_capacity: int, enrolled_count: int) -> None:
@@ -62,7 +59,7 @@ class ConfirmationRequired(DomainError):
 
     def __init__(self, course_id: str) -> None:
         super().__init__(
-            f"cannot delete course {course_id} without confirmation"
+            f"cannot delete course {course_id} without confirmation "
             "resend with ?confirm=true to proceed",
             course_id=course_id,
         )

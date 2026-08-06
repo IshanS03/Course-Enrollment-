@@ -68,9 +68,9 @@ def seed_from_json(db_path: Path | str | None = None) -> int:
             """
                 INSERT OR REPLACE INTO courses
                     (course_code, title, instructor, semester,
-                     days, drop_deadline, start_time, end_time, capacity)
+                     days, drop_deadline, start_time, end_time, capacity, learning_objectives)
                     VALUES (:course_code, :title, :instructor, :semester,
-                            :days, :drop_deadline, :start_time, :end_time, :capacity)
+                            :days, :drop_deadline, :start_time, :end_time, :capacity, :learning_objectives)
             """, courses
         )
        

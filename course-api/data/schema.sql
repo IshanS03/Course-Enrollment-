@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS courses (
     enrichment_audience     TEXT,
     enrichment_confidence   REAL,
     enrichment_status       TEXT NOT NULL DEFAULT 'pending' CHECK (enrichment_status IN ('pending', 'complete', 'failed')),
+   
+    ai_generated            INTEGER NOT NULL DEFAULT 0 CHECK (ai_generated IN (0, 1)),
 
     created_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))

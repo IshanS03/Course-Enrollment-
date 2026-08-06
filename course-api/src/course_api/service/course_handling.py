@@ -83,6 +83,7 @@ def enrich_course_fields(
         "enrichment_outcomes": None,
         "enrichment_audience": None,
         "enrichment_confidence": None,
+        "ai_generated": False,
     }
 
     try:
@@ -91,6 +92,7 @@ def enrich_course_fields(
             course["course_code"],
             course["learning_objectives"],
         )
+        
    
     #saved. structlog carries the request_id bound by the request middleware.
     except Exception:
@@ -105,6 +107,7 @@ def enrich_course_fields(
         "enrichment_outcomes": None,
         "enrichment_audience": None,
         "enrichment_confidence": None,
+        "ai_generated": False,
     }
 
    
@@ -122,4 +125,5 @@ def enrich_course_fields(
         "enrichment_outcomes": json.dumps(enrichment.learning_outcomes),
         "enrichment_audience": enrichment.target_audience,
         "enrichment_confidence": enrichment.confidence,
+        "ai_generated": True,
     }

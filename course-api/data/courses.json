@@ -9,7 +9,7 @@
         "end_time": 650,
         "drop_deadline": "2026-01-15",
         "capacity": 2,
-        "learning_objectives": "Analyze the time and space complexity of iterative and recursive algorithms using asymptotic notation. Implement and compare classical sorting and searching strategies. Apply divide-and-conquer, greedy, and dynamic programming techniques to unfamiliar problems. Model problems as graphs and select appropriate traversal or shortest-path algorithms. Justify algorithm choices in terms of measured performance trade-offs."
+        "learning_objectives": ""
     },
     {
         "course_code": "MATH-101",
@@ -21,7 +21,7 @@
         "end_time": 855,
         "drop_deadline": "2027-01-20",
         "capacity": 30,
-        "learning_objectives": "Evaluate limits algebraically and graphically, including one-sided limits and limits at infinity. Compute derivatives using the power, product, quotient, and chain rules. Apply differentiation to related rates, optimization, and curve sketching problems. Interpret the definite integral as an accumulated quantity and evaluate it using the Fundamental Theorem of Calculus."
+        "learning_objectives": ""
     },
     {
         "course_code": "ENG-210",
@@ -33,6 +33,6 @@
         "end_time": 590,
         "drop_deadline": "2027-01-20",
         "capacity": 25,
-        "learning_objectives": "Adapt tone, structure, and level of detail to a specified professional audience. Produce clear procedural documentation, including instructions and reference material. Design documents that use headings, lists, and visuals to support rapid comprehension. Revise drafts in response to peer and instructor feedback, and cite technical sources accurately."
+        "learning_objectives": ""
     }
 ]
