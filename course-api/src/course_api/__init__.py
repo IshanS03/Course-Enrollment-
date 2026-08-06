@@ -10,9 +10,7 @@ from course_api.api.errors import register_error_handlers
 from course_api.db import init_db, close_connection
 from course_api.api.middleware import register_request_logging
 from course_api.enrich import build_client
-
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from course_api.limiter import limiter
 
 from course_api.api.logging import configure_logging
 
@@ -49,12 +47,7 @@ def create_app(db_path : str | None  = None) -> Flask:
     app.register_blueprint(enrollment_bp, url_prefix= "/enrollments") #localhost:5000/enrollments
     app.register_blueprint(h) 
 
-    Limiter(
-        key_func = get_remote_address,
-        app=app,
-        default_limits=["200 per minute"],
-        storage_uri="memory://"
-    )
+    limiter.init_app(app)   
 
     register_request_logging(app)
     register_error_handlers(app)

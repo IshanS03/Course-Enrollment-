@@ -6,7 +6,9 @@ from course_api.db import connect
 from course_api.repository.enrollments import list_enrollments_sql, get_enrollment_sql
 from course_api.models.enrollment import EnrollmentCreate, EnrollmentUpdate, Status
 from course_api.api.errors import EnrollmentNotFound
-from course_api.service.enrollment_handling import create_enrollment_service, update_enrollment_service, drop_enrollment_service
+from course_api.service.enrollment_handling import create_enrollment_service, update_enrollment_service, drop_enrollment_service, bulk_create_enrollments_service
+from course_api.limiter import limiter
+from pydantic import TypeAdapter
 
 bp = Blueprint("enrollment", __name__)
 
@@ -53,6 +55,7 @@ def get_enrollment(enrollment_id: str):
     return enrollment
 
 @bp.route("", methods=["POST"])
+@limiter.limit("100 per minute")
 def create_enrollment():
     """POST /enrollments
         creates a enrollment with specified parameters and returns it.
@@ -67,6 +70,30 @@ def create_enrollment():
     }
     enrollment = create_enrollment_service(conn, new_enrollment)
     return enrollment, 201
+
+@bp.route("/bulk", methods=["POST"])
+@limiter.limit("100 per minute")
+def bulk_create_enrollments():
+    """POST /enrollments/bulk
+    creates enrollments from a list"""
+    enrollments = request.get_json(silent=True)
+    
+    #check if enrollments is a list or is empty somehow
+    if not isinstance(enrollments, list) or not enrollments:
+        return {"error": "invalid_body", "message": "expected a non-empty JSON array"}, 400
+
+    #Type adapter allows us to check if payload is a LIST OF EnrollmentCreates
+    items = TypeAdapter(list[EnrollmentCreate]).validate_python(enrollments)
+
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    new_enrollments = [
+        {**i.model_dump(), 
+         "enrolled_at": now, 
+         "updated_at": now} 
+        for i in items]
+
+    enrollments = bulk_create_enrollments_service(_db(), new_enrollments)
+    return {"count": len(enrollments), "items": enrollments}, 201
 
 @bp.route("/<enrollment_id>", methods = ["PATCH"])
 def edit_enrollment(enrollment_id):

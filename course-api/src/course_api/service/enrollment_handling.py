@@ -21,42 +21,65 @@ _FREES_A_SEAT = ("dropped", "late_drop")
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
+def _create_enrollment(conn: sqlite3.Connection, enrollment: dict[str, Any]) -> dict[str, Any]:
+    """Base insert logic for both a bulk/single enrollment creation"""
+
+    course = get_course_sql(conn, enrollment["course_id"])
+    if course is None:
+        raise CourseNotFound(enrollment["course_id"])
+
+    #No grade is set when a student enrolls, so default value for grade is None.
+    enrollment.setdefault("grade", None)
+
+    enrolled_count = count_enrolled_for_course(conn, course_id=course["id"])
+    #check if course capacity would be exceeded
+    if enrolled_count >= course["capacity"]:
+        enrollment["status"] = "waitlisted"
+        enrollment["waitlist_position"] = _next_waitlist_position(conn, course["id"])
+    else:
+        enrollment["status"] = "enrolled"
+        enrollment["waitlist_position"] = None
+
+    #SQLite assigns the id via AUTOINCREMENT, read it back so the response carries the real row id.
+    enrollment_id = create_enrollment_sql(conn, enrollment)
+    return get_enrollment_sql(conn, enrollment_id)
+
+
 def create_enrollment_service(conn: sqlite3.Connection, enrollment: dict[str, Any]):
 
-    """Service function for create enrollment route in order to prevent race conditions 
+    """Service function for create enrollment route in order to prevent race conditions
     as well as update potential waitlists"""
 
 #Must wrap this function in a single operation as to prevent race conditions
     conn.execute("BEGIN IMMEDIATE")
     try:
-        course = get_course_sql(conn, enrollment["course_id"])
-        if course is None:
-            raise CourseNotFound(enrollment["course_id"])
-
-        #No grade is set when a student enrolls, and the default value for grade is None. 
-        enrollment.setdefault("grade", None)
-
-        enrolled_count = count_enrolled_for_course(conn, course_id=course["id"])
-        #check if course capacity would be exceeded
-        if enrolled_count >= course["capacity"]:
-            enrollment["status"] = "waitlisted"
-            enrollment["waitlist_position"] = _next_waitlist_position(conn, course["id"])
-        else:
-            enrollment["status"] = "enrolled"
-            enrollment["waitlist_position"] = None
-
-        #SQLite assigns the id via AUTOINCREMENT, read it back so the response
-        #carries the real row id.
-        enrollment_id = create_enrollment_sql(conn, enrollment)
-        #Recall enrollment_id so the response carries the timestamps SQLite actually stored
-        #rather than the in-memory ones.
-        stored = get_enrollment_sql(conn, enrollment_id)
+        stored = _create_enrollment(conn, enrollment)
         conn.execute("COMMIT")
         return stored
 
     except Exception:
         conn.execute("ROLLBACK")
         raise
+
+
+def bulk_create_enrollments_service(
+    conn: sqlite3.Connection, enrollments: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Insert many enrollments in a single transaction
+
+    Because each enrollment is part of the same connection, the bulk creation is ALL or nothing. 
+
+    """
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        stored = [_create_enrollment(conn, enrollment) for enrollment in enrollments]
+        conn.execute("COMMIT")
+        return stored
+
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
+
 
 def update_enrollment_service(conn: sqlite3.Connection, enrollment_id: str, updates: dict[str, Any]) -> dict[str, Any] | None:
 

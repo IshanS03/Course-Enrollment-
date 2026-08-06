@@ -8,6 +8,7 @@ from course_api.repository.courses import list_courses_sql, get_course_sql, crea
 from course_api.service.course_handling import update_course_service, enrich_course_fields
 from course_api.models.course import CourseCreate, CourseUpdate
 from course_api.api.errors import CourseNotFound, ConfirmationRequired
+from course_api.limiter import limiter
 
 bp = Blueprint("course", __name__)
 
@@ -47,6 +48,7 @@ def get_course(course_id: str):
     return course
 
 @bp.route("", methods=["POST"])
+@limiter.limit("10 per minute")
 def create_course():
     """POST /courses
         creates a course with specified parameters and returns it.
@@ -76,6 +78,7 @@ def create_course():
     )
 
     return get_course_sql(conn, course_id), 201
+    
 
 @bp.route("/<course_id>", methods = ["PATCH"])
 def edit_course(course_id):
