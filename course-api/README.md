@@ -215,17 +215,13 @@ behind shifts down by one, so positions stay contiguous from 1.
 
 `gpt-5.1` on Azure OpenAI, API version `2024-10-21`.
 
-Enrichment is one small JSON object per course write, not a per-request hot path,
-so cost scales with course creation rather than traffic. The task needs reliable
-adherence to a fixed schema and restraint about facts not in the input — a
-fabricated prerequisite in a course catalog is a real harm. Instruction-following
-on both counts is worth more than the savings from a cheaper deployment.
+5.1 gives enrichment fields more reasoning to decide learning objectives, course overview, and audience. Mini models gave answers with less confidence and sometimes chose wrong audeince. 
 
 ### Configuration
 
 | Parameter | Value | Reasoning |
 | --- | --- | --- |
-| `temperature` | `0.0` | Structured extraction, not creative writing. Same objectives should give the same blurb; low variance keeps output in-schema. |
+| `temperature` | `0.0` | Structured extraction, not creative writing. Same objectives should give the same outputs; variance keeps output in-schema. |
 | `max_completion_tokens` | `800` | Covers reasoning tokens plus visible JSON. Too low truncates mid-object, surfacing as a validation error and an avoidable `failed`. |
 | `response_format` | `{"type": "json_object"}` | Constrains the response to parseable JSON at the API level, so conformance does not rest on prompt wording alone. |
 
